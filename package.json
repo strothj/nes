@@ -1,0 +1,25 @@
+{
+  "name": "nes",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "strothj <jason@jasons.io>",
+  "license": "MIT",
+  "scripts": {
+    "start": "yarn build --watch",
+    "build": "babel -x .ts -d dist --ignore **/*.spec.ts --no-copy-ignored --delete-dir-on-start src",
+    "test": "jest"
+  },
+  "dependencies": {
+    "core-js": "^3.6.4"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.7",
+    "@babel/preset-env": "^7.8.7",
+    "@babel/preset-typescript": "^7.8.3",
+    "@types/jest": "^25.1.4",
+    "@yarnpkg/pnpify": "^2.0.0-rc.19",
+    "jest": "^25.1.0",
+    "typescript": "^3.8.3"
+  }
+}

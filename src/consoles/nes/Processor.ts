@@ -17,9 +17,7 @@ export class Processor {
     return startingPage === endingPage ? 3 : 4;
   }
 
-  private compareValueImmediate(value: number): number {
-    const programCounter = this.memory.programCounter.value;
-    const operand = this.memory.getByte(programCounter + 1);
+  private executeCompareValue(value: number, operand: number): void {
     this.memory.flags.carry = value >= operand;
     this.memory.flags.zero = value === operand;
 
@@ -29,9 +27,23 @@ export class Processor {
     // http://www.6502.org/tutorials/compare_beyond.html#2.1
     const result = value - operand;
     this.memory.flags.negative = (result & 0x80) > 0;
+  }
 
+  private compareValueImmediate(value: number): number {
+    const programCounter = this.memory.programCounter.value;
+    const operand = this.memory.getByte(programCounter + 1);
+    this.executeCompareValue(value, operand);
     this.memory.programCounter.increment(2);
     return 2;
+  }
+
+  private compareValueAbsolute(value: number): number {
+    const programCounter = this.memory.programCounter.value;
+    const address = this.memory.getU16(programCounter + 1);
+    const operand = this.memory.getByte(address);
+    this.executeCompareValue(value, operand);
+    this.memory.programCounter.increment(3);
+    return 4;
   }
 
   executeInstruction(): number {
@@ -232,6 +244,11 @@ export class Processor {
       // CMP - Compare (Immediate)
       case 0xc9: {
         return this.compareValueImmediate(this.memory.accumulator.value);
+      }
+
+      // CMP - Compare (Absolute)
+      case 0xcd: {
+        return this.compareValueAbsolute(this.memory.accumulator.value);
       }
 
       // BNE - Branch if Not Equal (Relative)

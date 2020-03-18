@@ -111,7 +111,7 @@ export class Processor {
       // STA - Store Accumulator (Absolute)
       case 0x8d: {
         const address = this.memory.getU16(programCounter + 1);
-        this.memory.setU8(address, this.memory.accumulator.value);
+        this.memory.setByte(address, this.memory.accumulator.value);
         this.memory.programCounter.increment(3);
         return 4;
       }

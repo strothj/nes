@@ -32,7 +32,7 @@ export class ProcessorMemory {
     return this.memory[address & 0x0000ffff];
   }
 
-  setU8(address: number, value: number): void {
+  setByte(address: number, value: number): void {
     // Zero the first 16 bits to implement wrap around and prevent out of bounds
     // index access.
     this.memory[address & 0x0000ffff] = value;

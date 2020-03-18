@@ -46,27 +46,53 @@ export class Processor {
     return 4;
   }
 
+  private pushAddressToStack(address: number): void {
+    this.memory.setByte(
+      0x0100 + this.memory.stackPointer.value,
+      (address & 0xff00) >>> 8,
+    );
+    this.memory.stackPointer.increment(-1);
+    this.memory.setByte(
+      0x0100 + this.memory.stackPointer.value,
+      address & 0x00ff,
+    );
+    this.memory.stackPointer.increment(-1);
+  }
+
+  private pushFlagsToStack(): void {
+    let value = 0;
+    value += this.memory.flags.carry ? 0x01 : 0;
+    value += this.memory.flags.zero ? 0x02 : 0;
+    value += this.memory.flags.interruptDisable ? 0x04 : 0;
+    value += this.memory.flags.decimalMode ? 0x08 : 0;
+    // PHP and BRK instructions set this bit when pushing to the stack.
+    // Not set when pushed by an interrupt.
+    value += 0x10;
+    // Unused bit 5, always set when pushed to stack.
+    value += 0x20;
+    value += this.memory.flags.overflow ? 0x40 : 0;
+    value += this.memory.flags.negative ? 0x80 : 0;
+    this.memory.setByte(0x0100 + this.memory.stackPointer.value, value);
+    this.memory.stackPointer.increment(-1);
+  }
+
   executeInstruction(): number {
     const programCounter = this.memory.programCounter.value;
     const opCode = this.memory.getByte(programCounter);
 
     switch (opCode) {
+      // BRK - Force Interrupt (Implied)
+      case 0x00: {
+        this.pushAddressToStack(this.memory.programCounter.value);
+        this.pushFlagsToStack();
+        const address = this.memory.getU16(0xfffe);
+        this.memory.programCounter.value = address;
+        return 7;
+      }
+
       // PHP - Push Processor Status (Implied)
       case 0x08: {
-        let value = 0;
-        value += this.memory.flags.carry ? 0x01 : 0;
-        value += this.memory.flags.zero ? 0x02 : 0;
-        value += this.memory.flags.interruptDisable ? 0x04 : 0;
-        value += this.memory.flags.decimalMode ? 0x08 : 0;
-        // PHP and BRK instructions set this bit when pushing to the stack.
-        // Not set when pushed by an interrupt.
-        value += 0x10;
-        // Unused bit 5, always set when pushed to stack.
-        value += 0x20;
-        value += this.memory.flags.overflow ? 0x40 : 0;
-        value += this.memory.flags.negative ? 0x80 : 0;
-        this.memory.setByte(0x0100 + this.memory.stackPointer.value, value);
-        this.memory.stackPointer.increment(-1);
+        this.pushFlagsToStack();
         this.memory.programCounter.increment(1);
         return 3;
       }
@@ -81,6 +107,15 @@ export class Processor {
         this.memory.flags.carry = false;
         this.memory.programCounter.increment(1);
         return 2;
+      }
+
+      // JSR - Jump to Subroutine (Absolute)
+      case 0x20: {
+        const address = this.memory.getU16(programCounter + 1);
+        this.memory.programCounter.increment(2);
+        this.pushAddressToStack(this.memory.programCounter.value);
+        this.memory.programCounter.value = address;
+        return 6;
       }
 
       // PLP - Pull Processor Status (Implied)
@@ -139,6 +174,20 @@ export class Processor {
         return this.branchOnFlag("overflow", false);
       }
 
+      // RTS - Return from Subroutine (Implied)
+      case 0x60: {
+        this.memory.stackPointer.increment(1);
+        let address = this.memory.getByte(
+          0x0100 + this.memory.stackPointer.value,
+        );
+        this.memory.stackPointer.increment(1);
+        address |=
+          this.memory.getByte(0x0100 + this.memory.stackPointer.value) << 8;
+        address++;
+        this.memory.programCounter.value = address;
+        return 6;
+      }
+
       // PLA - Pull Accumulator (Implied)
       case 0x68: {
         // Decrement stack pointer first to deal with wrap around. The stack
@@ -176,6 +225,14 @@ export class Processor {
 
         this.memory.programCounter.increment(2);
         return 2;
+      }
+
+      // JMP - Jump (Indirect)
+      case 0x6c: {
+        const pointer = this.memory.getU16(programCounter + 1);
+        const address = this.memory.getU16(pointer);
+        this.memory.programCounter.value = address;
+        return 5;
       }
 
       // BVS - Branch if Overflow Set (Relative)
@@ -314,6 +371,16 @@ export class Processor {
         return this.compareValueImmediate(this.memory.indexRegisterY.value);
       }
 
+      // INY - Increment Y Register (Implied)
+      case 0xc8: {
+        this.memory.indexRegisterY.increment(1);
+        const y = this.memory.indexRegisterY.value;
+        this.memory.flags.zero = y === 0;
+        this.memory.flags.negative = (y & 0x80) === 0x80;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // DEX - Decrement X Register (Implied)
       case 0xca: {
         const value = this.memory.indexRegisterX.value - 1;
@@ -349,6 +416,22 @@ export class Processor {
       // CPX - Compare X Register (Immediate)
       case 0xe0: {
         return this.compareValueImmediate(this.memory.indexRegisterX.value);
+      }
+
+      // INX - Increment X Register (Implied)
+      case 0xe8: {
+        this.memory.indexRegisterX.increment(1);
+        const x = this.memory.indexRegisterX.value;
+        this.memory.flags.zero = x === 0;
+        this.memory.flags.negative = (x & 0x80) === 0x80;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
+      // NOP - No Operation (Implied)
+      case 0xea: {
+        this.memory.programCounter.increment(1);
+        return 2;
       }
 
       // BEQ - Branch if Equal (Relative)

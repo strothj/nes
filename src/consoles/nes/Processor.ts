@@ -226,6 +226,16 @@ export class Processor {
         return this.branchOnFlag("carry", true);
       }
 
+      // TSX - Transfer Stack Pointer to X (Implied)
+      case 0xba: {
+        const x = this.memory.stackPointer.value;
+        this.memory.indexRegisterX.value = x;
+        this.memory.flags.zero = x === 0;
+        this.memory.flags.negative = (x & 0x80) === 0x80;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // CPY - Compare Y Register (Immediate)
       case 0xc0: {
         return this.compareValueImmediate(this.memory.indexRegisterY.value);

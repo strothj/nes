@@ -34,6 +34,11 @@ export class Processor {
         return 2;
       }
 
+      // BMI - Branch if Minus (Relative)
+      case 0x30: {
+        return this.branchOnFlag("negative", true);
+      }
+
       // EOR - Exclusive OR (Immediate)
       case 0x49: {
         const operand = this.memory.getByte(programCounter + 1);

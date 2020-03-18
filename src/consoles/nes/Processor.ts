@@ -157,6 +157,16 @@ export class Processor {
         return 2;
       }
 
+      // TAY - Transfer Accumulator to Y (Implied)
+      case 0xa8: {
+        const y = this.memory.accumulator.value;
+        this.memory.indexRegisterY.value = y;
+        this.memory.flags.zero = y === 0;
+        this.memory.flags.negative = (y & 0x80) > 0;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // LDA - Load Accumulator (Immediate)
       case 0xa9: {
         const operand = this.memory.getByte(programCounter + 1);

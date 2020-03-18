@@ -172,6 +172,11 @@ export class Processor {
         return 4;
       }
 
+      // BCS - Branch if Carry Set (Relative)
+      case 0xb0: {
+        return this.branchOnFlag("carry", true);
+      }
+
       // CPY - Compare Y Register (Immediate)
       case 0xc0: {
         const operand = this.memory.getByte(programCounter + 1);

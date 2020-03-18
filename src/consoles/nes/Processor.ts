@@ -51,6 +51,26 @@ export class Processor {
     const opCode = this.memory.getByte(programCounter);
 
     switch (opCode) {
+      // PHP - Push Processor Status (Implied)
+      case 0x08: {
+        let value = 0;
+        value += this.memory.flags.carry ? 0x01 : 0;
+        value += this.memory.flags.zero ? 0x02 : 0;
+        value += this.memory.flags.interruptDisable ? 0x04 : 0;
+        value += this.memory.flags.decimalMode ? 0x08 : 0;
+        // PHP and BRK instructions set this bit when pushing to the stack.
+        // Not set when pushed by an interrupt.
+        value += 0x10;
+        // Unused bit 5, always set when pushed to stack.
+        value += 0x20;
+        value += this.memory.flags.overflow ? 0x40 : 0;
+        value += this.memory.flags.negative ? 0x80 : 0;
+        this.memory.setByte(0x0100 + this.memory.stackPointer.value, value);
+        this.memory.stackPointer.increment(-1);
+        this.memory.programCounter.increment(1);
+        return 3;
+      }
+
       // BPL - Branch if Positive (Relative)
       case 0x10: {
         return this.branchOnFlag("negative", false);
@@ -61,6 +81,23 @@ export class Processor {
         this.memory.flags.carry = false;
         this.memory.programCounter.increment(1);
         return 2;
+      }
+
+      // PLP - Pull Processor Status (Implied)
+      case 0x28: {
+        this.memory.stackPointer.increment(1);
+        const value = this.memory.getByte(
+          0x0100 + this.memory.stackPointer.value,
+        );
+        this.memory.flags.carry = (value & 0x01) === 0x01;
+        this.memory.flags.zero = (value & 0x02) === 0x02;
+        this.memory.flags.interruptDisable = (value & 0x04) === 0x04;
+        this.memory.flags.decimalMode = (value & 0x08) === 0x08;
+        this.memory.flags.breakCommand = (value & 0x10) === 0x10;
+        this.memory.flags.overflow = (value & 0x40) === 0x40;
+        this.memory.flags.negative = (value & 0x80) === 0x80;
+        this.memory.programCounter.increment(1);
+        return 4;
       }
 
       // BMI - Branch if Minus (Relative)
@@ -95,6 +132,11 @@ export class Processor {
         const address = this.memory.getU16(programCounter + 1);
         this.memory.programCounter.value = address;
         return 3;
+      }
+
+      // BVC - Branch if Overflow Clear (Relative)
+      case 0x50: {
+        return this.branchOnFlag("overflow", false);
       }
 
       // PLA - Pull Accumulator (Implied)
@@ -134,6 +176,11 @@ export class Processor {
 
         this.memory.programCounter.increment(2);
         return 2;
+      }
+
+      // BVS - Branch if Overflow Set (Relative)
+      case 0x70: {
+        return this.branchOnFlag("overflow", true);
       }
 
       // DEY - Decrement Y Register (Implied)

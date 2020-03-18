@@ -205,13 +205,7 @@ export class Processor {
 
       // CPY - Compare Y Register (Immediate)
       case 0xc0: {
-        const operand = this.memory.getByte(programCounter + 1);
-        const y = this.memory.indexRegisterY.value;
-        this.memory.flags.carry = y >= operand;
-        this.memory.flags.zero = y === operand;
-        this.memory.flags.negative = (operand & 0x80) > 0;
-        this.memory.programCounter.increment(2);
-        return 2;
+        return this.compareValueImmediate(this.memory.indexRegisterY.value);
       }
 
       // DEX - Decrement X Register (Implied)

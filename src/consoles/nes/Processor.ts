@@ -131,6 +131,16 @@ export class Processor {
         return 2;
       }
 
+      // TXA - Transfer X to Accumulator (Implied)
+      case 0x8a: {
+        const accumulator = this.memory.indexRegisterX.value;
+        this.memory.accumulator.value = accumulator;
+        this.memory.flags.zero = accumulator === 0;
+        this.memory.flags.negative = (accumulator & 0x80) === 0x80;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // STA - Store Accumulator (Absolute)
       case 0x8d: {
         const address = this.memory.getU16(programCounter + 1);

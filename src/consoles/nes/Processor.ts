@@ -56,6 +56,17 @@ export class Processor {
         return this.branchOnFlag("negative", true);
       }
 
+      // PHA - Push Accumulator (Implied)
+      case 0x48: {
+        this.memory.setByte(
+          0x0100 + this.memory.stackPointer.value,
+          this.memory.accumulator.value,
+        );
+        this.memory.stackPointer.increment(-1);
+        this.memory.programCounter.increment(1);
+        return 3;
+      }
+
       // EOR - Exclusive OR (Immediate)
       case 0x49: {
         const operand = this.memory.getByte(programCounter + 1);

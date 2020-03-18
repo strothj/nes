@@ -17,6 +17,23 @@ export class Processor {
     return startingPage === endingPage ? 3 : 4;
   }
 
+  private compareValueImmediate(value: number): number {
+    const programCounter = this.memory.programCounter.value;
+    const operand = this.memory.getByte(programCounter + 1);
+    this.memory.statusFlags.carry = value >= operand;
+    this.memory.statusFlags.zero = value === operand;
+
+    // The negative flag is set based on the subtraction of the operand from
+    // the value. The most significant bit determines whether or not the
+    // negative flag is set.
+    // http://www.6502.org/tutorials/compare_beyond.html#2.1
+    const result = value - operand;
+    this.memory.statusFlags.negative = (result & 0x80) > 0;
+
+    this.memory.programCounter.increment(2);
+    return 2;
+  }
+
   executeInstruction(): number {
     const programCounter = this.memory.programCounter.value;
     const opCode = this.memory.getByte(programCounter);
@@ -200,20 +217,7 @@ export class Processor {
 
       // CMP - Compare (Immediate)
       case 0xc9: {
-        const operand = this.memory.getByte(programCounter + 1);
-        const accumulator = this.memory.accumulator.value;
-        this.memory.statusFlags.carry = accumulator >= operand;
-        this.memory.statusFlags.zero = accumulator === operand;
-
-        // The negative flag is set based on the subtraction of the operand from
-        // the accumulator. The most significant bit determines whether or not
-        // the negative flag is set.
-        // http://www.6502.org/tutorials/compare_beyond.html#2.1
-        const result = accumulator - operand;
-        this.memory.statusFlags.negative = (result & 0x80) > 0;
-
-        this.memory.programCounter.increment(2);
-        return 2;
+        return this.compareValueImmediate(this.memory.accumulator.value);
       }
 
       // BNE - Branch if Not Equal (Relative)
@@ -226,6 +230,11 @@ export class Processor {
         this.memory.statusFlags.decimalMode = false;
         this.memory.programCounter.increment(1);
         return 2;
+      }
+
+      // CPX - Compare X Register (Immediate)
+      case 0xe0: {
+        return this.compareValueImmediate(this.memory.indexRegisterX.value);
       }
 
       // BEQ - Branch if Equal (Relative)

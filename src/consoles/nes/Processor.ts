@@ -8,7 +8,7 @@ export class Processor {
   private branchOnFlag(flag: ProcessorStatusFlag, flagValue: boolean): number {
     const programCounter = this.memory.programCounter.value;
     this.memory.programCounter.increment(2);
-    if (this.memory.statusFlags[flag] !== flagValue) return 2;
+    if (this.memory.flags[flag] !== flagValue) return 2;
 
     const startingPage = (this.memory.programCounter.value & 0xff00) >>> 8;
     const operand = this.memory.getSignedByte(programCounter + 1);
@@ -20,15 +20,15 @@ export class Processor {
   private compareValueImmediate(value: number): number {
     const programCounter = this.memory.programCounter.value;
     const operand = this.memory.getByte(programCounter + 1);
-    this.memory.statusFlags.carry = value >= operand;
-    this.memory.statusFlags.zero = value === operand;
+    this.memory.flags.carry = value >= operand;
+    this.memory.flags.zero = value === operand;
 
     // The negative flag is set based on the subtraction of the operand from
     // the value. The most significant bit determines whether or not the
     // negative flag is set.
     // http://www.6502.org/tutorials/compare_beyond.html#2.1
     const result = value - operand;
-    this.memory.statusFlags.negative = (result & 0x80) > 0;
+    this.memory.flags.negative = (result & 0x80) > 0;
 
     this.memory.programCounter.increment(2);
     return 2;
@@ -46,7 +46,7 @@ export class Processor {
 
       // CLC - Clear Carry Flag (Implied)
       case 0x18: {
-        this.memory.statusFlags.carry = false;
+        this.memory.flags.carry = false;
         this.memory.programCounter.increment(1);
         return 2;
       }
@@ -61,8 +61,8 @@ export class Processor {
         const operand = this.memory.getByte(programCounter + 1);
         const accumulator = this.memory.accumulator.value ^ operand;
         this.memory.accumulator.value = accumulator;
-        this.memory.statusFlags.zero = accumulator === 0;
-        this.memory.statusFlags.negative = (accumulator & 0x80) > 0;
+        this.memory.flags.zero = accumulator === 0;
+        this.memory.flags.negative = (accumulator & 0x80) > 0;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -77,12 +77,12 @@ export class Processor {
       // ADC - Add with Carry (Immediate)
       case 0x69: {
         const operand = this.memory.getByte(programCounter + 1);
-        const carry = this.memory.statusFlags.carry ? 1 : 0;
+        const carry = this.memory.flags.carry ? 1 : 0;
         const accumulator = this.memory.accumulator.value + carry;
         const value = accumulator + operand;
         this.memory.accumulator.value = value;
-        this.memory.statusFlags.carry = value > 255;
-        this.memory.statusFlags.zero = value === 0;
+        this.memory.flags.carry = value > 255;
+        this.memory.flags.zero = value === 0;
 
         const positiveOperand = Utils.unsignedToSigned(operand, 8) >= 0;
         const positiveAccumulator = Utils.unsignedToSigned(accumulator, 8) >= 0;
@@ -91,7 +91,7 @@ export class Processor {
           positiveOperand === positiveAccumulator &&
           positiveOperand !== positiveValue
         ) {
-          this.memory.statusFlags.overflow = true;
+          this.memory.flags.overflow = true;
         }
 
         this.memory.programCounter.increment(2);
@@ -101,8 +101,8 @@ export class Processor {
       // DEY - Decrement Y Register (Implied)
       case 0x88: {
         this.memory.indexRegisterY.increment(-1);
-        this.memory.statusFlags.zero = this.memory.indexRegisterY.value === 0;
-        this.memory.statusFlags.negative =
+        this.memory.flags.zero = this.memory.indexRegisterY.value === 0;
+        this.memory.flags.negative =
           (this.memory.indexRegisterY.value & 0x80) > 0;
         this.memory.programCounter.increment(1);
         return 2;
@@ -124,9 +124,8 @@ export class Processor {
       // TYA - Transfer Y to Accumulator (Implied)
       case 0x98: {
         this.memory.accumulator.value = this.memory.indexRegisterY.value;
-        this.memory.statusFlags.zero = this.memory.accumulator.value === 0;
-        this.memory.statusFlags.negative =
-          (this.memory.accumulator.value & 0x80) > 0;
+        this.memory.flags.zero = this.memory.accumulator.value === 0;
+        this.memory.flags.negative = (this.memory.accumulator.value & 0x80) > 0;
         this.memory.programCounter.increment(1);
         return 2;
       }
@@ -142,8 +141,8 @@ export class Processor {
       case 0xa0: {
         const operand = this.memory.getByte(programCounter + 1);
         this.memory.indexRegisterY.value = operand;
-        this.memory.statusFlags.zero = operand === 0;
-        this.memory.statusFlags.negative = (operand & 0x80) > 0;
+        this.memory.flags.zero = operand === 0;
+        this.memory.flags.negative = (operand & 0x80) > 0;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -152,8 +151,8 @@ export class Processor {
       case 0xa2: {
         const operand = this.memory.getByte(programCounter + 1);
         this.memory.indexRegisterX.value = operand;
-        this.memory.statusFlags.zero = operand === 0;
-        this.memory.statusFlags.negative = (operand & 0x80) > 0;
+        this.memory.flags.zero = operand === 0;
+        this.memory.flags.negative = (operand & 0x80) > 0;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -162,8 +161,8 @@ export class Processor {
       case 0xa9: {
         const operand = this.memory.getByte(programCounter + 1);
         this.memory.accumulator.value = operand;
-        this.memory.statusFlags.zero = operand === 0;
-        this.memory.statusFlags.negative = (operand & 0x80) > 0;
+        this.memory.flags.zero = operand === 0;
+        this.memory.flags.negative = (operand & 0x80) > 0;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -172,8 +171,8 @@ export class Processor {
       case 0xaa: {
         const value = this.memory.accumulator.value;
         this.memory.indexRegisterX.value = value;
-        this.memory.statusFlags.zero = value === 0;
-        this.memory.statusFlags.negative = (value & 0x80) > 0;
+        this.memory.flags.zero = value === 0;
+        this.memory.flags.negative = (value & 0x80) > 0;
         this.memory.programCounter.increment(1);
         return 2;
       }
@@ -183,8 +182,8 @@ export class Processor {
         const address = this.memory.getU16(programCounter + 1);
         const value = this.memory.getByte(address);
         this.memory.accumulator.value = value;
-        this.memory.statusFlags.zero = value === 0;
-        this.memory.statusFlags.negative = (value & 0x80) > 0;
+        this.memory.flags.zero = value === 0;
+        this.memory.flags.negative = (value & 0x80) > 0;
         this.memory.programCounter.increment(3);
         return 4;
       }
@@ -198,9 +197,9 @@ export class Processor {
       case 0xc0: {
         const operand = this.memory.getByte(programCounter + 1);
         const y = this.memory.indexRegisterY.value;
-        this.memory.statusFlags.carry = y >= operand;
-        this.memory.statusFlags.zero = y === operand;
-        this.memory.statusFlags.negative = (operand & 0x80) > 0;
+        this.memory.flags.carry = y >= operand;
+        this.memory.flags.zero = y === operand;
+        this.memory.flags.negative = (operand & 0x80) > 0;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -209,8 +208,8 @@ export class Processor {
       case 0xca: {
         const value = this.memory.indexRegisterX.value - 1;
         this.memory.indexRegisterX.value = value;
-        this.memory.statusFlags.zero = value === 0;
-        this.memory.statusFlags.negative = (value & 0x80) > 0;
+        this.memory.flags.zero = value === 0;
+        this.memory.flags.negative = (value & 0x80) > 0;
         this.memory.programCounter.increment(1);
         return 2;
       }
@@ -227,7 +226,7 @@ export class Processor {
 
       // CLD - Clear Decimal Mode (Implied)
       case 0xd8: {
-        this.memory.statusFlags.decimalMode = false;
+        this.memory.flags.decimalMode = false;
         this.memory.programCounter.increment(1);
         return 2;
       }

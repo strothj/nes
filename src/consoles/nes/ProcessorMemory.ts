@@ -8,7 +8,7 @@ export class ProcessorMemory {
   readonly accumulator = new Register(Uint8Array);
   readonly indexRegisterX = new Register(Uint8Array);
   readonly indexRegisterY = new Register(Uint8Array);
-  readonly statusFlags: Record<ProcessorStatusFlag, boolean> = {
+  readonly flags: Record<ProcessorStatusFlag, boolean> = {
     carry: false,
     zero: false,
     interruptDisable: false,

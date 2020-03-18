@@ -14,7 +14,7 @@ function logMemory(
     "Index Register X": memory.indexRegisterX.value,
     "Index Register Y": memory.indexRegisterY.value,
   };
-  for (const [key, value] of Object.entries(memory.statusFlags)) {
+  for (const [key, value] of Object.entries(memory.flags)) {
     table[`Processor Status Flag (${key})`] = value;
   }
   const formattedTable: Record<string, string | boolean> = {};

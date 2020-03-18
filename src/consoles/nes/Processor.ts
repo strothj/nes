@@ -97,6 +97,21 @@ export class Processor {
         return 3;
       }
 
+      // PLA - Pull Accumulator (Implied)
+      case 0x68: {
+        // Decrement stack pointer first to deal with wrap around. The stack
+        // pointer points to the next available slot, not the current slot.
+        this.memory.stackPointer.increment(1);
+        const accumulator = this.memory.getByte(
+          0x0100 + this.memory.stackPointer.value,
+        );
+        this.memory.accumulator.value = accumulator;
+        this.memory.flags.zero = accumulator === 0;
+        this.memory.flags.negative = (accumulator & 0x80) === 0x80;
+        this.memory.programCounter.increment(1);
+        return 4;
+      }
+
       // ADC - Add with Carry (Immediate)
       case 0x69: {
         const operand = this.memory.getByte(programCounter + 1);
@@ -203,9 +218,10 @@ export class Processor {
       // LDA - Load Accumulator (Immediate)
       case 0xa9: {
         const operand = this.memory.getByte(programCounter + 1);
-        this.memory.accumulator.value = operand;
-        this.memory.flags.zero = operand === 0;
-        this.memory.flags.negative = (operand & 0x80) > 0;
+        const accumulator = operand;
+        this.memory.accumulator.value = accumulator;
+        this.memory.flags.zero = accumulator === 0;
+        this.memory.flags.negative = (accumulator & 0x80) === 0x80;
         this.memory.programCounter.increment(2);
         return 2;
       }

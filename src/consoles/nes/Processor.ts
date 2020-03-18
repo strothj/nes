@@ -204,7 +204,14 @@ export class Processor {
         const accumulator = this.memory.accumulator.value;
         this.memory.statusFlags.carry = accumulator >= operand;
         this.memory.statusFlags.zero = accumulator === operand;
-        this.memory.statusFlags.negative = (operand & 0x80) > 0;
+
+        // The negative flag is set based on the subtraction of the operand from
+        // the accumulator. The most significant bit determines whether or not
+        // the negative flag is set.
+        // http://www.6502.org/tutorials/compare_beyond.html#2.1
+        const result = accumulator - operand;
+        this.memory.statusFlags.negative = (result & 0x80) > 0;
+
         this.memory.programCounter.increment(2);
         return 2;
       }

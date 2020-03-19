@@ -59,6 +59,15 @@ export class Processor {
     this.memory.stackPointer.increment(-1);
   }
 
+  private popAddressFromStack(): number {
+    this.memory.stackPointer.increment(1);
+    let address = this.memory.getByte(0x0100 + this.memory.stackPointer.value);
+    this.memory.stackPointer.increment(1);
+    address |=
+      this.memory.getByte(0x0100 + this.memory.stackPointer.value) << 8;
+    return address;
+  }
+
   private pushFlagsToStack(): void {
     let value = 0;
     value += this.memory.flags.carry ? 0x01 : 0;
@@ -74,6 +83,18 @@ export class Processor {
     value += this.memory.flags.negative ? 0x80 : 0;
     this.memory.setByte(0x0100 + this.memory.stackPointer.value, value);
     this.memory.stackPointer.increment(-1);
+  }
+
+  private popAndSetFlagsFromStack(): void {
+    this.memory.stackPointer.increment(1);
+    const value = this.memory.getByte(0x0100 + this.memory.stackPointer.value);
+    this.memory.flags.carry = (value & 0x01) === 0x01;
+    this.memory.flags.zero = (value & 0x02) === 0x02;
+    this.memory.flags.interruptDisable = (value & 0x04) === 0x04;
+    this.memory.flags.decimalMode = (value & 0x08) === 0x08;
+    this.memory.flags.breakCommand = (value & 0x10) === 0x10;
+    this.memory.flags.overflow = (value & 0x40) === 0x40;
+    this.memory.flags.negative = (value & 0x80) === 0x80;
   }
 
   executeInstruction(): number {
@@ -125,17 +146,7 @@ export class Processor {
 
       // PLP - Pull Processor Status (Implied)
       case 0x28: {
-        this.memory.stackPointer.increment(1);
-        const value = this.memory.getByte(
-          0x0100 + this.memory.stackPointer.value,
-        );
-        this.memory.flags.carry = (value & 0x01) === 0x01;
-        this.memory.flags.zero = (value & 0x02) === 0x02;
-        this.memory.flags.interruptDisable = (value & 0x04) === 0x04;
-        this.memory.flags.decimalMode = (value & 0x08) === 0x08;
-        this.memory.flags.breakCommand = (value & 0x10) === 0x10;
-        this.memory.flags.overflow = (value & 0x40) === 0x40;
-        this.memory.flags.negative = (value & 0x80) === 0x80;
+        this.popAndSetFlagsFromStack();
         this.memory.programCounter.increment(1);
         return 4;
       }
@@ -143,6 +154,14 @@ export class Processor {
       // BMI - Branch if Minus (Relative)
       case 0x30: {
         return this.branchOnFlag("negative", true);
+      }
+
+      // RTI - Return from Interrupt (Implied)
+      case 0x40: {
+        this.popAndSetFlagsFromStack();
+        const address = this.popAddressFromStack();
+        this.memory.programCounter.value = address;
+        return 6;
       }
 
       // PHA - Push Accumulator (Implied)
@@ -181,15 +200,8 @@ export class Processor {
 
       // RTS - Return from Subroutine (Implied)
       case 0x60: {
-        this.memory.stackPointer.increment(1);
-        let address = this.memory.getByte(
-          0x0100 + this.memory.stackPointer.value,
-        );
-        this.memory.stackPointer.increment(1);
-        address |=
-          this.memory.getByte(0x0100 + this.memory.stackPointer.value) << 8;
-        address++;
-        this.memory.programCounter.value = address;
+        const address = this.popAddressFromStack();
+        this.memory.programCounter.value = address + 1;
         return 6;
       }
 
@@ -328,6 +340,28 @@ export class Processor {
         this.memory.flags.negative = (operand & 0x80) === 0x80;
         this.memory.programCounter.increment(2);
         return 2;
+      }
+
+      // LDA - Load Accumulator (Zero Page)
+      case 0xa5: {
+        const address = this.memory.getByte(programCounter + 1);
+        const operand = this.memory.getByte(address);
+        this.memory.accumulator.value = operand;
+        this.memory.flags.zero = operand === 0;
+        this.memory.flags.negative = (operand & 0x80) === 0x80;
+        this.memory.programCounter.increment(2);
+        return 3;
+      }
+
+      // LDX - Load X Register (Zero Page)
+      case 0xa6: {
+        const address = this.memory.getByte(programCounter + 1);
+        const operand = this.memory.getByte(address);
+        this.memory.indexRegisterX.value = operand;
+        this.memory.flags.zero = operand === 0;
+        this.memory.flags.negative = (operand & 0x80) === 0x80;
+        this.memory.programCounter.increment(2);
+        return 3;
       }
 
       // TAY - Transfer Accumulator to Y (Implied)

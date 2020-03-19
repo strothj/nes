@@ -83,9 +83,15 @@ export class Processor {
     switch (opCode) {
       // BRK - Force Interrupt (Implied)
       case 0x00: {
-        this.pushAddressToStack(this.memory.programCounter.value);
         const address = this.memory.getU16(0xfffe);
+        // You'd assume that because this is a single byte instruction, the
+        // address that's pushed to the stack (as the return address) would be
+        // the byte immediately after this instruction. Instead, it's the byte
+        // after that (PC + 2).
+        this.pushAddressToStack(this.memory.programCounter.value + 2);
+        this.pushFlagsToStack();
         this.memory.programCounter.value = address;
+        this.memory.flags.interruptDisable = true;
         return 7;
       }
 

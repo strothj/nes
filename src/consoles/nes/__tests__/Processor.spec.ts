@@ -24,11 +24,17 @@ function logMemory(
         ? "0x" + value.toString(16).toUpperCase()
         : value;
   }
+  formattedTable["Stack Contents"] = Array.from(
+    {
+      length: 0xff - memory.stackPointer.value,
+    },
+    (_, i) => memory.getByte(0x01ff - i).toString(16),
+  ).join();
   return JSON.stringify(formattedTable, null, 2);
 }
 
 describe("Fixture", () => {
-  it("functional test exercises opcodes", () => {
+  it("6502_functional_test", () => {
     const memory = new ProcessorMemory(functionalTestBin);
     memory.programCounter.value = 0x0400;
     let lastProgramCounter = 0x000;
@@ -39,7 +45,7 @@ describe("Fixture", () => {
         lastProgramCounter = memory.programCounter.value;
         processor.executeInstruction();
         memoryLog.push(logMemory(memory, lastProgramCounter));
-        if (memoryLog.length > 10) memoryLog.shift();
+        if (memoryLog.length > 30) memoryLog.shift();
       }
     } catch (error) {
       console.log(...memoryLog);

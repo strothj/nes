@@ -1,4 +1,6 @@
 export class Utils {
+  private static u16Array = new Uint16Array(1);
+
   /**
    * Converts the provided unsigned value to a signed one using twos-complement.
    *
@@ -15,5 +17,17 @@ export class Utils {
       return minimumValue + (unsignedValue & mask);
     }
     return unsignedValue;
+  }
+
+  /**
+   * Increments `value` by the provided `delta. Performs wrap around on
+   * overflow.
+   *
+   * @param value Value to increment.
+   * @param delta A positive or negative number to increment `value` by.
+   */
+  static u16Increment(value: number, delta: number): number {
+    this.u16Array[0] = value + delta;
+    return this.u16Array[0];
   }
 }

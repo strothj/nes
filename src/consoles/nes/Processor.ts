@@ -84,7 +84,6 @@ export class Processor {
       // BRK - Force Interrupt (Implied)
       case 0x00: {
         this.pushAddressToStack(this.memory.programCounter.value);
-        this.pushFlagsToStack();
         const address = this.memory.getU16(0xfffe);
         this.memory.programCounter.value = address;
         return 7;
@@ -240,6 +239,22 @@ export class Processor {
         return this.branchOnFlag("overflow", true);
       }
 
+      // STA - Store Accumulator (Zero Page)
+      case 0x85: {
+        const address = this.memory.getByte(programCounter + 1);
+        this.memory.setByte(address, this.memory.accumulator.value);
+        this.memory.programCounter.increment(2);
+        return 3;
+      }
+
+      // STX - Store X Register (Zero Page)
+      case 0x86: {
+        const address = this.memory.getByte(programCounter + 1);
+        this.memory.setByte(address, this.memory.indexRegisterX.value);
+        this.memory.programCounter.increment(2);
+        return 3;
+      }
+
       // DEY - Decrement Y Register (Implied)
       case 0x88: {
         this.memory.indexRegisterY.increment(-1);
@@ -294,7 +309,7 @@ export class Processor {
         const operand = this.memory.getByte(programCounter + 1);
         this.memory.indexRegisterY.value = operand;
         this.memory.flags.zero = operand === 0;
-        this.memory.flags.negative = (operand & 0x80) > 0;
+        this.memory.flags.negative = (operand & 0x80) === 0x80;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -304,7 +319,7 @@ export class Processor {
         const operand = this.memory.getByte(programCounter + 1);
         this.memory.indexRegisterX.value = operand;
         this.memory.flags.zero = operand === 0;
-        this.memory.flags.negative = (operand & 0x80) > 0;
+        this.memory.flags.negative = (operand & 0x80) === 0x80;
         this.memory.programCounter.increment(2);
         return 2;
       }
@@ -364,6 +379,31 @@ export class Processor {
         this.memory.flags.negative = (x & 0x80) === 0x80;
         this.memory.programCounter.increment(1);
         return 2;
+      }
+
+      // LDA - Load Accumulator (Absolute,X)
+      case 0xbd: {
+        const address = Utils.u16Increment(
+          this.memory.getU16(programCounter + 1),
+          this.memory.indexRegisterX.value,
+        );
+        console.log({
+          x: this.memory.indexRegisterX.value.toString(16),
+          baseAddress: this.memory.getU16(programCounter + 1).toString(16),
+          operand: this.memory.indexRegisterX.value.toString(16),
+          address: address.toString(16),
+        });
+        const startingPage =
+          (Utils.u16Increment(programCounter, 2) & 0xff00) >>> 8;
+        const endingPage = (address & 0xff00) >>> 8;
+        const pageCrossed = startingPage !== endingPage;
+        const accumulator = this.memory.getByte(address);
+        console.log({ accumulator: accumulator.toString(16) });
+        this.memory.accumulator.value = accumulator;
+        this.memory.flags.zero = accumulator === 0;
+        this.memory.flags.negative = (accumulator & 0x80) === 0x80;
+        this.memory.programCounter.increment(3);
+        return pageCrossed ? 5 : 4;
       }
 
       // CPY - Compare Y Register (Immediate)

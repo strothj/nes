@@ -5,6 +5,27 @@ import { ProcessorStatusFlag } from "./ProcessorStatusFlag.js";
 export class Processor {
   constructor(private readonly memory: ProcessorMemory) {}
 
+  private addIndexOffsetToAddress(
+    baseAddress: number,
+    indexOffset: number,
+  ): number {
+    const msb = baseAddress & 0x0000ff00;
+    // Only the index offset wraps.
+    const lsb = (baseAddress + indexOffset) & 0x000000ff;
+    const address = msb | lsb;
+    console.log({
+      instruction: this.memory
+        .getByte(this.memory.programCounter.value)
+        .toString(16),
+      baseAddress: baseAddress.toString(16),
+      indexOffset: indexOffset.toString(16),
+      msb: msb.toString(16),
+      lsb: lsb.toString(16),
+      address: address.toString(16),
+    });
+    return address;
+  }
+
   private branchOnFlag(flag: ProcessorStatusFlag, flagValue: boolean): number {
     const programCounter = this.memory.programCounter.value;
     this.memory.programCounter.increment(2);
@@ -44,6 +65,24 @@ export class Processor {
     this.executeCompareValue(value, operand);
     this.memory.programCounter.increment(3);
     return 4;
+  }
+
+  private compareValueAbsoluteY(value: number): number {
+    const programCounter = this.memory.programCounter.value;
+    const startingPage = (programCounter & 0xff00) >>> 8;
+
+    const baseAddress = this.memory.getU16(programCounter + 1);
+    const address = this.addIndexOffsetToAddress(
+      baseAddress,
+      this.memory.indexRegisterY.value,
+    );
+    const operand = this.memory.getByte(address);
+    this.executeCompareValue(value, operand);
+    this.memory.programCounter.increment(3);
+
+    const endingPage = (address & 0xff00) >>> 8;
+    const pageCrossed = startingPage === endingPage;
+    return pageCrossed ? 5 : 4;
   }
 
   private pushAddressToStack(address: number): void {
@@ -156,6 +195,13 @@ export class Processor {
         return this.branchOnFlag("negative", true);
       }
 
+      // SEC - Set Carry Flag (Implied)
+      case 0x38: {
+        this.memory.flags.carry = true;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // RTI - Return from Interrupt (Implied)
       case 0x40: {
         this.popAndSetFlagsFromStack();
@@ -196,6 +242,13 @@ export class Processor {
       // BVC - Branch if Overflow Clear (Relative)
       case 0x50: {
         return this.branchOnFlag("overflow", false);
+      }
+
+      // CLI - Clear Interrupt Disable (Implied)
+      case 0x58: {
+        this.memory.flags.interruptDisable = false;
+        this.memory.programCounter.increment(1);
+        return 2;
       }
 
       // RTS - Return from Subroutine (Implied)
@@ -257,6 +310,13 @@ export class Processor {
         return this.branchOnFlag("overflow", true);
       }
 
+      // SEI - Set Interrupt Disable (Implied)
+      case 0x78: {
+        this.memory.flags.interruptDisable = true;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // STA - Store Accumulator (Zero Page)
       case 0x85: {
         const address = this.memory.getByte(programCounter + 1);
@@ -313,6 +373,18 @@ export class Processor {
         this.memory.flags.negative = (this.memory.accumulator.value & 0x80) > 0;
         this.memory.programCounter.increment(1);
         return 2;
+      }
+
+      // STA - Store Accumulator (Absolute, Y)
+      case 0x99: {
+        const baseAddress = this.memory.getU16(programCounter + 1);
+        const address = this.addIndexOffsetToAddress(
+          baseAddress,
+          this.memory.indexRegisterY.value,
+        );
+        this.memory.setByte(address, this.memory.accumulator.value);
+        this.memory.programCounter.increment(3);
+        return 5;
       }
 
       // TXS - Transfer X to Stack Pointer (Implied)
@@ -411,6 +483,28 @@ export class Processor {
         return this.branchOnFlag("carry", true);
       }
 
+      // LDX - Load X Register (Zero Page, Y)
+      case 0xb6: {
+        const baseAddress = this.memory.getByte(programCounter + 1);
+        const address = this.addIndexOffsetToAddress(
+          baseAddress,
+          this.memory.indexRegisterY.value,
+        );
+        const operand = this.memory.getByte(address);
+        this.memory.indexRegisterX.value = operand;
+        this.memory.flags.zero = operand === 0;
+        this.memory.flags.negative = (operand & 0x80) > 0;
+        this.memory.programCounter.increment(2);
+        return 4;
+      }
+
+      // CLV - Clear Overflow Flag (Implied)
+      case 0xb8: {
+        this.memory.flags.overflow = false;
+        this.memory.programCounter.increment(1);
+        return 2;
+      }
+
       // TSX - Transfer Stack Pointer to X (Implied)
       case 0xba: {
         const x = this.memory.stackPointer.value;
@@ -423,22 +517,16 @@ export class Processor {
 
       // LDA - Load Accumulator (Absolute,X)
       case 0xbd: {
-        const address = Utils.u16Increment(
-          this.memory.getU16(programCounter + 1),
+        const baseAddress = this.memory.getU16(programCounter + 1);
+        const address = this.addIndexOffsetToAddress(
+          baseAddress,
           this.memory.indexRegisterX.value,
         );
-        console.log({
-          x: this.memory.indexRegisterX.value.toString(16),
-          baseAddress: this.memory.getU16(programCounter + 1).toString(16),
-          operand: this.memory.indexRegisterX.value.toString(16),
-          address: address.toString(16),
-        });
         const startingPage =
           (Utils.u16Increment(programCounter, 2) & 0xff00) >>> 8;
         const endingPage = (address & 0xff00) >>> 8;
         const pageCrossed = startingPage !== endingPage;
         const accumulator = this.memory.getByte(address);
-        console.log({ accumulator: accumulator.toString(16) });
         this.memory.accumulator.value = accumulator;
         this.memory.flags.zero = accumulator === 0;
         this.memory.flags.negative = (accumulator & 0x80) === 0x80;
@@ -493,6 +581,11 @@ export class Processor {
         return 2;
       }
 
+      // CMP - Compare (Absolute, Y)
+      case 0xd9: {
+        return this.compareValueAbsoluteY(this.memory.accumulator.value);
+      }
+
       // CPX - Compare X Register (Immediate)
       case 0xe0: {
         return this.compareValueImmediate(this.memory.indexRegisterX.value);
@@ -517,6 +610,13 @@ export class Processor {
       // BEQ - Branch if Equal (Relative)
       case 0xf0: {
         return this.branchOnFlag("zero", true);
+      }
+
+      // SED - Set Decimal Flag (Implied)
+      case 0xf8: {
+        this.memory.flags.decimalMode = true;
+        this.memory.programCounter.increment(1);
+        return 2;
       }
 
       default: {

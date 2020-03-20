@@ -1,6 +1,8 @@
+import { PickByValue } from "utility-types";
 import { ProcessorMemory } from "./ProcessorMemory.js";
-import { Utils } from "./Utils.js";
 import { ProcessorStatusFlag } from "./ProcessorStatusFlag.js";
+import { Register } from "./Register.js";
+import { Utils } from "./Utils.js";
 
 export class Processor {
   constructor(private readonly memory: ProcessorMemory) {}
@@ -134,6 +136,30 @@ export class Processor {
     this.memory.flags.breakCommand = (value & 0x10) === 0x10;
     this.memory.flags.overflow = (value & 0x40) === 0x40;
     this.memory.flags.negative = (value & 0x80) === 0x80;
+  }
+
+  private loadRegisterAbsoluteIndexed<T extends Uint16Array | Uint8Array>({
+    targetRegisterName,
+    indexRegisterName,
+  }: {
+    targetRegisterName: keyof PickByValue<ProcessorMemory, Register<T>>;
+    indexRegisterName: keyof PickByValue<ProcessorMemory, Register<T>>;
+  }): number {
+    const programCounter = this.memory.programCounter.value;
+    const baseAddress = this.memory.getU16(programCounter + 1);
+    const address = this.addIndexOffsetToAddress(
+      baseAddress,
+      this.memory[indexRegisterName].value,
+    );
+    const startingPage = (Utils.u16Increment(programCounter, 2) & 0xff00) >>> 8;
+    const endingPage = (address & 0xff00) >>> 8;
+    const pageCrossed = startingPage !== endingPage;
+    const registerValue = this.memory.getByte(address);
+    this.memory[targetRegisterName].value = registerValue;
+    this.memory.flags.zero = registerValue === 0;
+    this.memory.flags.negative = (registerValue & 0x80) === 0x80;
+    this.memory.programCounter.increment(3);
+    return pageCrossed ? 5 : 4;
   }
 
   executeInstruction(): number {
@@ -517,21 +543,18 @@ export class Processor {
 
       // LDA - Load Accumulator (Absolute,X)
       case 0xbd: {
-        const baseAddress = this.memory.getU16(programCounter + 1);
-        const address = this.addIndexOffsetToAddress(
-          baseAddress,
-          this.memory.indexRegisterX.value,
-        );
-        const startingPage =
-          (Utils.u16Increment(programCounter, 2) & 0xff00) >>> 8;
-        const endingPage = (address & 0xff00) >>> 8;
-        const pageCrossed = startingPage !== endingPage;
-        const accumulator = this.memory.getByte(address);
-        this.memory.accumulator.value = accumulator;
-        this.memory.flags.zero = accumulator === 0;
-        this.memory.flags.negative = (accumulator & 0x80) === 0x80;
-        this.memory.programCounter.increment(3);
-        return pageCrossed ? 5 : 4;
+        return this.loadRegisterAbsoluteIndexed({
+          targetRegisterName: "accumulator",
+          indexRegisterName: "indexRegisterX",
+        });
+      }
+
+      // LDX - Load X Register (Absolute, Y)
+      case 0xbe: {
+        return this.loadRegisterAbsoluteIndexed({
+          targetRegisterName: "indexRegisterX",
+          indexRegisterName: "indexRegisterY",
+        });
       }
 
       // CPY - Compare Y Register (Immediate)

@@ -16,7 +16,7 @@ module.exports = {
   rules: {
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-var-requires": "off",
-    "import/extensions": ["error", "always"],
+    "import/extensions": ["error", "ignorePackages"],
   },
   overrides: [
     {

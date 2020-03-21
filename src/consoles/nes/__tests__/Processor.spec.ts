@@ -52,7 +52,7 @@ describe("Fixture", () => {
       throw error;
     }
     if (memory.programCounter.value !== 0x3399) {
-      console.log(...memoryLog);
+      console.log(...memoryLog.slice(0, -1));
       throw new Error("Infinite loop failure condition detected.");
     }
   });

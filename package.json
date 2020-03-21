@@ -12,7 +12,8 @@
     "build": "babel -x .ts -d dist --ignore **/*.spec.ts --no-copy-ignored --delete-dir-on-start src",
     "lint": "eslint --ext .ts src",
     "serve": "serve",
-    "test": "jest"
+    "test": "jest",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "core-js": "^3.6.4",

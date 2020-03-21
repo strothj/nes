@@ -1,4 +1,4 @@
-import { ProcessorStatusFlag } from "./ProcessorStatusFlag.js";
+import type { ProcessorStatusFlag } from "./ProcessorStatusFlag.js";
 import { Register } from "./Register.js";
 import { Utils } from "./Utils.js";
 

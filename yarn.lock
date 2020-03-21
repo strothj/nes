@@ -78,29 +78,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/core@npm:^7.1.0, @babel/core@npm:^7.7.5":
-  version: 7.8.7
-  resolution: "@babel/core@npm:7.8.7"
-  dependencies:
-    "@babel/code-frame": ^7.8.3
-    "@babel/generator": ^7.8.7
-    "@babel/helpers": ^7.8.4
-    "@babel/parser": ^7.8.7
-    "@babel/template": ^7.8.6
-    "@babel/traverse": ^7.8.6
-    "@babel/types": ^7.8.7
-    convert-source-map: ^1.7.0
-    debug: ^4.1.0
-    gensync: ^1.0.0-beta.1
-    json5: ^2.1.0
-    lodash: ^4.17.13
-    resolve: ^1.3.2
-    semver: ^5.4.1
-    source-map: ^0.5.0
-  checksum: 2/7f6b1fb2e8c0decfb0d335538d488d15d701b65385fc3dbdca67f377ed32efa8c3794293bbfd29f000c551ef8d7f927e1f6323b76ee8bbb29b90d602c60691da
-  languageName: node
-  linkType: hard
-
 "@babel/core@npm:^7.9.0":
   version: 7.9.0
   resolution: "@babel/core@npm:7.9.0"
@@ -125,7 +102,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/generator@npm:^7.8.6, @babel/generator@npm:^7.8.7":
+"@babel/generator@npm:^7.8.6":
   version: 7.8.8
   resolution: "@babel/generator@npm:7.8.8"
   dependencies:
@@ -394,17 +371,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/helpers@npm:^7.8.4":
-  version: 7.8.4
-  resolution: "@babel/helpers@npm:7.8.4"
-  dependencies:
-    "@babel/template": ^7.8.3
-    "@babel/traverse": ^7.8.4
-    "@babel/types": ^7.8.3
-  checksum: 2/eb415dd046030854a94f316ad744a7dd6d01515ae84fea9df4bb69982fd7e6fb3ed58b328cbc5569b5e0dd4653b72b034b75348eb813d0e975777c80d6819abc
-  languageName: node
-  linkType: hard
-
 "@babel/helpers@npm:^7.9.0":
   version: 7.9.0
   resolution: "@babel/helpers@npm:7.9.0"
@@ -438,7 +404,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/parser@npm:7.8.8, @babel/parser@npm:^7.1.0, @babel/parser@npm:^7.7.5, @babel/parser@npm:^7.8.6, @babel/parser@npm:^7.8.7":
+"@babel/parser@npm:7.8.8, @babel/parser@npm:^7.1.0, @babel/parser@npm:^7.7.5, @babel/parser@npm:^7.8.6":
   version: 7.8.8
   resolution: "@babel/parser@npm:7.8.8"
   bin:
@@ -1206,7 +1172,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/traverse@npm:^7.1.0, @babel/traverse@npm:^7.7.4, @babel/traverse@npm:^7.8.3, @babel/traverse@npm:^7.8.4, @babel/traverse@npm:^7.8.6":
+"@babel/traverse@npm:^7.1.0, @babel/traverse@npm:^7.7.4, @babel/traverse@npm:^7.8.3, @babel/traverse@npm:^7.8.6":
   version: 7.8.6
   resolution: "@babel/traverse@npm:7.8.6"
   dependencies:
@@ -5366,7 +5332,7 @@ fsevents@^2.1.2:
   languageName: node
   linkType: hard
 
-"json5@npm:^2.1.0, json5@npm:^2.1.2":
+"json5@npm:^2.1.2":
   version: 2.1.2
   resolution: "json5@npm:2.1.2"
   dependencies:

@@ -5,6 +5,7 @@
   "author": "strothj <jason@jasons.io>",
   "license": "MIT",
   "resolutions": {
+    "@babel/core": "^7.9.0",
     "prettier": "prettier/prettier#next"
   },
   "scripts": {

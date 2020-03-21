@@ -8,7 +8,10 @@
  * @property {string=} targets
  */
 
-module.exports = api => {
+/**
+ * @param {{ env: (arg0: string) => object; }} api
+ */
+module.exports = (api) => {
   /** @type {PresetEnvOptions} */
   const presetEnvOptions = {
     modules: false,
@@ -26,5 +29,6 @@ module.exports = api => {
       ["@babel/preset-env", presetEnvOptions],
       "@babel/preset-typescript",
     ],
+    plugins: ["@babel/plugin-proposal-class-properties"],
   };
 };

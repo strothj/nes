@@ -5,8 +5,7 @@
   "author": "strothj <jason@jasons.io>",
   "license": "MIT",
   "resolutions": {
-    "@babel/core": "^7.9.0",
-    "prettier": "prettier/prettier#next"
+    "@babel/core": "^7.9.0"
   },
   "scripts": {
     "start": "yarn build --watch",
@@ -36,7 +35,7 @@
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-prettier": "^3.1.2",
     "jest": "^25.1.0",
-    "prettier": "^1.19.1",
+    "prettier": "^2.0.1",
     "serve": "^11.3.0",
     "typescript": "^3.8.3"
   }
